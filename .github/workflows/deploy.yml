@@ -1,0 +1,98 @@
+name: 部署布灵图床后端到Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 1.Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: 2.Install Dependencies
+        run: |
+          npm install
+          npm install -g wrangler
+          which wrangler  # 显示 wrangler 的安装位置
+          wrangler --version  # 显示 wrangler 版本
+      
+
+      - name: 3.Create D1 Database if not exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          echo "Checking existing D1 databases..."
+          wrangler d1 list &>/dev/null || echo "Failed to list databases"
+          
+          DATABASE_INFO=$(wrangler d1 list 2>/dev/null | grep "buling-imgbed-d1" || echo "")
+          if [ -z "$DATABASE_INFO" ]; then
+            echo "Creating D1 database..."
+            CREATE_OUTPUT=$(wrangler d1 create buling-imgbed-d1 2>/dev/null)
+            
+            DATABASE_ID=$(echo "$CREATE_OUTPUT" | grep "database_id" | grep -o '[0-9a-f]\{8\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{12\}')
+            if [ -z "$DATABASE_ID" ]; then
+              echo "Failed to get database ID"
+              exit 1
+            fi
+            
+            echo "Database created successfully"
+            sed -i "s/database_id = \"xxxx\"/database_id = \"$DATABASE_ID\"/" wrangler.toml
+            
+            if [ -f "./db.sql" ]; then
+              echo "Initializing database..."
+              wrangler d1 execute buling-imgbed-d1 --file=./db.sql --remote &>/dev/null || {
+                echo "Failed to initialize database"
+                exit 1
+              }
+              echo "Database initialized successfully"
+            else
+              echo "Error: db.sql file not found!"
+              exit 1
+            fi
+          else
+            echo "Using existing D1 database"
+            DATABASE_ID=$(wrangler d1 list 2>/dev/null | grep "buling-imgbed-d1" | grep -o '[0-9a-f]\{8\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{4\}-[0-9a-f]\{12\}')
+            sed -i "s/database_id = \"xxxx\"/database_id = \"$DATABASE_ID\"/" wrangler.toml
+          fi
+
+      - name: 4.Create R2 Bucket if not exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          # 检查并创建 R2 存储桶
+          BUCKET_INFO=$(wrangler r2 bucket list | grep "buling-imgbed-r2" || echo "")
+          if [ -z "$BUCKET_INFO" ]; then
+            echo "Creating R2 bucket..."
+            wrangler r2 bucket create buling-imgbed-r2
+          else
+            echo "R2 bucket already exists"
+          fi
+      
+      - name: 5.Update wrangler.toml with secrets
+        run: |
+          sed -i "s/JWT_SECRET = \".*\"/JWT_SECRET = \"${{ secrets.JWT_SECRET }}\"/" wrangler.toml
+          sed -i "s/TG_BOT_TOKEN = \".*\"/TG_BOT_TOKEN = \"${{ secrets.TG_BOT_TOKEN }}\"/" wrangler.toml
+          echo "Configuration updated successfully"
+
+      - name: 6.Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          echo "开始部署到 Cloudflare Workers..."
+          npm run deploy &>/dev/null || {
+            echo "❌ 部署失败"
+            exit 1
+          }
+          echo "✅ 部署成功"
