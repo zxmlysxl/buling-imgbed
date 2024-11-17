@@ -89,27 +89,27 @@ export const tgbotController = {
                 `https://image.baidu.com/search/down?url=${imageUrl}` : '';
 
             const messageText =
-`<b>🎉 图片上传成功！</b>
+`*🎉 图片上传成功！*
 
-<b>⚡️ 图片直链</b>
-<pre><code>${imageUrl}</code></pre>
+*⚡️ 图片直链*
+> \`${imageUrl}\`
+${baiduUrl ? `
+*💨 百度加速*
+> \`${baiduUrl}\`
+` : ''}
+*💫 HTML代码*
+> \`<img src="${imageUrl}" alt="image">\`
 
-${baiduUrl ? `<b>🎭 百度加速</b>
-<pre><code>${baiduUrl}</code></pre>` : ''}
+*⭐️ BBCode*
+> \`[img]${imageUrl}[/img]\`
 
-<b>💫 HTML代码</b>
-<pre><code>&lt;img src="${imageUrl}" alt="image"&gt;</code></pre>
+*🌙 Markdown*
+> \`![](${imageUrl})\`
 
-<b>⭐️ BBCode</b>
-<pre><code>[img]${imageUrl}[/img]</code></pre>
-
-<b>🌙 Markdown</b>
-<pre><code>![image](${imageUrl})</code></pre>
-
-<i>💡 点击代码块可直接复制对应内容</i>`;
+_💡 点击链接可直接复制对应内容_`;
 
             // 使用 Markdown 格式发送消息
-            await sendTelegramMessage(c.env.TG_BOT_TOKEN, chatId, messageText, 'HTML');
+            await sendTelegramMessage(c.env.TG_BOT_TOKEN, chatId, messageText, 'MarkdownV2');
 
             return c.json({ success: true });
         } catch (error) {
