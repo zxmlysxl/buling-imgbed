@@ -70,11 +70,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          # 检查并创建 R2 存储桶
+          # 检查并创建 R2 存储桶. 默认创建到(--location=apac)亚太地区。
+          # --location= wnam北美西部 / enam北美东部 / weur西欧 /eeur东欧 。根据需要自行修改
           BUCKET_INFO=$(wrangler r2 bucket list | grep "buling-imgbed-r2" || echo "")
           if [ -z "$BUCKET_INFO" ]; then
             echo "Creating R2 bucket..."
-            wrangler r2 bucket create buling-imgbed-r2
+            wrangler r2 bucket create buling-imgbed-r2 --location=apac
           else
             echo "R2 bucket already exists"
           fi
