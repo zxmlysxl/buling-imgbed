@@ -73,6 +73,7 @@
      - Account.Workers R2 Storage: Read & Write
      - Account.Workers Scripts: Edit
      - Account.D1: Edit
+     - Account.Cloudflare Pages: Edit (建议添加，用于前端项目部署，可复用此token)
 
 #### 2. JWT 密钥生成
 - 方法一：使用在线 UUID 生成器：[UUID Generator](https://www.uuidgenerator.net/)
@@ -103,8 +104,20 @@
    JWT_SECRET=your_jwt_secret
    TG_BOT_TOKEN=your_telegram_bot_token
    ```
-3. 启用 GitHub Actions
-4. 推送代码触发自动部署
+3. 存储桶区域设置（可选）：
+   - 默认在亚太地区创建存储桶
+   - 如需更改区域，请修改 `.github\workflows\deploy.toml` 中的以下配置：
+     ```yaml
+     wrangler r2 bucket create buling-imgbed-r2 --location=<region>
+     ```
+   - 可选区域：
+     - `apac` - 亚太地区（默认）
+     - `wnam` - 北美西部
+     - `enam` - 北美东部
+     - `weur` - 欧洲西部
+     - `eeur` - 欧洲东部
+4. 启用 GitHub Actions
+5. 推送代码触发自动部署（首次部署请点击 Actions 页面手动触发）
 
 
 ### 手动部署
@@ -153,7 +166,7 @@ Cloudflare Workers (服务运行时)
 
 ## 📞 联系作者
 
-- 博客：[Anuuu.com](https://annuuu.com)
+- 博客：[Anuuu.com](https://anuuu.com)
 - Telegram：[@wzsxh]
 
 ---
